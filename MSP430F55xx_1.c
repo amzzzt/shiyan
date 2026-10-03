@@ -64,14 +64,23 @@
 #include <msp430.h>
 #include "delay.h"
 
+int count = 0;
+
 int main(void)
 {
   WDTCTL = WDTPW+WDTHOLD;                   // Stop WDT
   P1DIR |= BIT0;                            // P1.0 set as output
+  P4DIR |= BIT7;
 
   while(1)                                  // continuous loop
   {
-    P1OUT ^= BIT0;                          // XOR P1.0
-    delay_ms(500);                          // Delay
+    P1OUT &= ~BIT0;                         // 先把两个灯都灭掉
+    P4OUT &= ~BIT7;
+
+    if (count % 2 == 0)  P1OUT |= BIT0;     // 每 10 拍点亮 LED1
+    if (count % 4 == 0) P4OUT |= BIT7;     // 每 20 拍点亮 LED2
+
+    delay_ms(500);                          // 一拍 100ms，也就是灯亮的时间
+    count++;
   }
 }

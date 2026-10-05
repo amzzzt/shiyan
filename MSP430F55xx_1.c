@@ -67,24 +67,44 @@
 int main(void)
 {
   int i;
+  int keys = 0;
+  int count = 0;
 
   WDTCTL = WDTPW+WDTHOLD;                   // Stop WDT
 
   P3DIR |= 0xFF;                            // P3.0 ~ P3.7 全部设为输出
   P3OUT |= 0xFF;                            // 先全部熄灭（低电平才点亮，所以拉高）
+  P2DIR &= ~BIT1;
+  P2REN |= BIT1;
+  P2OUT |= BIT1;
 
   while(1)                                  // continuous loop
   {
-    for (i = 7; i >= 0; i--)                 // 依次亮起
+    if((P2IN & BIT1) == 0)
     {
-      P3OUT &= ~(1 << i);                   // 第 i 位拉低 → 点亮
-      delay_ms(500);
+      delay_ms(10);
+      if((P2IN & BIT1) == 0)
+      {
+        keys = 1;
+      }
     }
+      if(keys)
+      {
+        for (count = 0; count < 10; count++)
+        {
+          for (i = 4; i < 8; i++)                 // 依次亮起
+          {
+           P3OUT &= ~(1 << i);                   // 第 i 位拉低 → 点亮
+           delay_ms(500);
+          }
 
-    for (i = 7; i >= 0; i--)                 // 依次熄灭
-    {
-      P3OUT |= (1 << i);                    // 第 i 位拉高 → 熄灭
-      delay_ms(500);
+         for (i = 4; i < 8; i++)                 // 依次熄灭
+         {
+            P3OUT |= (1 << i);                   // 第 i 位拉高 → 熄灭              
+            delay_ms(500);
+         }
+      }
+       keys = 0;
     }
   }
 }

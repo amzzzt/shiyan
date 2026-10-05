@@ -63,12 +63,15 @@
 //******************************************************************************
 #include <msp430.h>
 #include "delay.h"
+#include "key.h"
 
 int main(void)
 {
   int i;
-  int keys = 0;
-  int count = 0;
+  int count1;
+  int count2;
+
+  key_init();
 
   WDTCTL = WDTPW+WDTHOLD;                   // Stop WDT
 
@@ -80,31 +83,41 @@ int main(void)
 
   while(1)                                  // continuous loop
   {
-    if((P2IN & BIT1) == 0)
-    {
-      delay_ms(10);
-      if((P2IN & BIT1) == 0)
+
+      if(blink1 == 1)
       {
-        keys = 1;
-      }
-    }
-      if(keys)
-      {
-        for (count = 0; count < 10; count++)
+        for (count1 = 0; count1 < 10; count1++)
         {
           for (i = 4; i < 8; i++)                 // 依次亮起
           {
            P3OUT &= ~(1 << i);                   // 第 i 位拉低 → 点亮
            delay_ms(500);
           }
-
-         for (i = 4; i < 8; i++)                 // 依次熄灭
-         {
-            P3OUT |= (1 << i);                   // 第 i 位拉高 → 熄灭              
+          for (i = 4; i <8; i++)
+          {
+            P3OUT |= (1 << i);
             delay_ms(500);
-         }
+          }
+        }
+        blink1 = 0;
       }
-       keys = 0;
+      if(blink2 == 1)
+      {
+        for (count2 = 0; count2 < 5; count2++)
+        {
+          for (i = 7; i > 3; i--)                 // 依次亮起
+          {
+           P3OUT &= ~(1 << i);                   // 第 i 位拉低 → 点亮
+           delay_ms(500);
+          }
+          for (i = 7; i > 3; i--)
+          {
+            P3OUT |= (1 << i);
+            delay_ms(500);
+          }
+        }
+        blink2 = 0;
+      }
     }
-  }
-}
+ }
+

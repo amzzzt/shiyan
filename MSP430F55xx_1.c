@@ -63,24 +63,44 @@
 //******************************************************************************
 #include <msp430.h>
 #include "delay.h"
+#include "key.h"
 
 int count = 0;
+char blink1 = 0;
+char blink2 = 0;
+
 
 int main(void)
 {
+
+unsigned int i;
+
   WDTCTL = WDTPW+WDTHOLD;                   // Stop WDT
   P1DIR |= BIT0;                            // P1.0 set as output
   P4DIR |= BIT7;
+
+  key_init();
 
   while(1)                                  // continuous loop
   {
     P1OUT &= ~BIT0;                         // 先把两个灯都灭掉
     P4OUT &= ~BIT7;
 
-    if (count % 2 == 0)  P1OUT |= BIT0;     // 每 10 拍点亮 LED1
-    if (count % 4 == 0) P4OUT |= BIT7;     // 每 20 拍点亮 LED2
+    if (blink1 && (count % 2 == 0))  P1OUT |= BIT0;     // 每 2 拍点亮 LED1
+    if (blink2 && (count % 4 == 0)) P4OUT |= BIT7;     // 每 4 拍点亮 LED2
 
-    delay_ms(500);                          // 一拍 100ms，也就是灯亮的时间
     count++;
+
+    for (i = 0 ; i < 25 ; i++)
+    {
+      switch (key_scan())
+      {
+      case KEY1:blink1 = 1;
+        break;
+      case KEY2:blink2 = 1;
+        break;
+      }
+      delay_ms(20);
+    }
   }
 }

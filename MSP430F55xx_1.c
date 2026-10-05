@@ -63,29 +63,28 @@
 //******************************************************************************
 #include <msp430.h>
 #include "delay.h"
-#include "key.h"
-
-int count = 0;
 
 int main(void)
 {
+  int i;
 
   WDTCTL = WDTPW+WDTHOLD;                   // Stop WDT
-  P1DIR |= BIT0;                            // P1.0 set as output
-  P4DIR |= BIT7;
 
-  key_init();
+  P3DIR |= 0xFF;                            // P3.0 ~ P3.7 全部设为输出
+  P3OUT |= 0xFF;                            // 先全部熄灭（低电平才点亮，所以拉高）
 
   while(1)                                  // continuous loop
   {
-    P1OUT &= ~BIT0;                         // 先把两个灯都灭掉
-    P4OUT &= ~BIT7;
+    for (i = 7; i >= 0; i--)                 // 依次亮起
+    {
+      P3OUT &= ~(1 << i);                   // 第 i 位拉低 → 点亮
+      delay_ms(500);
+    }
 
-    if (blink1 && (count % 2 == 0))  P1OUT |= BIT0;     // 每 2 拍点亮 LED1
-    if (blink2 && (count % 4 == 0)) P4OUT |= BIT7;     // 每 4 拍点亮 LED2
-
-    delay_ms(250);
-    count++;
-
+    for (i = 7; i >= 0; i--)                 // 依次熄灭
+    {
+      P3OUT |= (1 << i);                    // 第 i 位拉高 → 熄灭
+      delay_ms(500);
+    }
   }
 }

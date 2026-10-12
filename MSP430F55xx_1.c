@@ -59,6 +59,7 @@
 //   Built with CCS Theia
 //******************************************************************************
 #include <msp430.h>
+#include "key.h"
 
 // ---- 延时函数（原来放在 delay.h，现在搬到这里，让本文件自成一体）----
 #define CPU_F 1000000UL                   // MCLK 主频 1MHz
@@ -84,17 +85,71 @@ void light(int on)
 
 int main(void)
 {
+  int t;                              // 节拍计数
+  int i;                              // 流水循环用
+
   WDTCTL = WDTPW+WDTHOLD;             // 关闭看门狗
 
-  P1DIR |= BIT0;                      // P1.0 设为输出（LED1）
-  P4DIR |= BIT7;                      // P4.7 设为输出（LED2）
+  P1DIR |= BIT0;                      // P1.0 输出（LED1）
+  P4DIR |= BIT7;                      // P4.7 输出（LED2）
+  P3DIR |= 0xFF;                      // P3.0 ~ P3.7 全部输出（8 个流水灯）
+  P3OUT |= 0xFF;                      // 低电平点亮，先全部熄灭
+
+  key3_init();                        // 三个独立按键初始化（P4.0~P4.2）
 
   while (1)
   {
-    light(1);                         // LED1 亮、LED2 灭
-    delay_ms(1000);                   // 保持 1 秒
+    /* ---- 两个 LED 每 1 秒交替一次（不按键时也闪）---- */
+    if ((t / 2) % 2 == 0)
+    {
+      light(0);                      // 断点1：LED1 灭、LED2 亮
+    }
+    else
+    {
+      light(1);                      // 断点2：LED1 亮、LED2 灭
+    }
 
-    light(0);                         // LED1 灭、LED2 亮
-    delay_ms(1000);                   // 保持 1 秒
+    switch (key3_scan())
+    {
+      case S1:                                      // 从右向左流水
+        for (i = 7; i >= 0; i--)
+        {
+          P3OUT |= 0xFF;                            // 先全部灭掉
+          P3OUT &= ~(1 << i);                       // 只点亮这一个
+          light((i / 2) % 2);                       // 流水期间两个 LED 继续交替
+          delay_ms(500);
+        }
+        P3OUT |= 0xFF;                              // 流完把最后一个也灭掉
+        break;
+
+      case S2:                                      // 从左向右流水
+        for (i = 0; i < 8; i++)
+        {
+          P3OUT |= 0xFF;                            // 先全部灭掉
+          P3OUT &= ~(1 << i);                       // 只点亮这一个
+          light((i / 2) % 2);
+          delay_ms(500);
+        }
+        P3OUT |= 0xFF;                              // 流完把最后一个也灭掉
+        break;
+
+      case S3:                                      // 左→右依次亮起，再右→左依次熄灭
+        for (i = 0; i < 8; i++)
+        {
+          P3OUT &= ~(1 << i);                       // 累积点亮：P3.0 → P3.7
+          light((i / 2) % 2);
+          delay_ms(500);
+        }
+        for (i = 7; i >= 0; i--)
+        {
+          P3OUT |= (1 << i);                        // 依次熄灭：P3.7 → P3.0
+          light((i / 2) % 2);
+          delay_ms(500);
+        }
+        break;
+    }
+
+    delay_ms(500);                    // 公共节拍 500ms
+    t++;
   }
 }

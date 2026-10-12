@@ -56,3 +56,47 @@ __interrupt void Port_1(void)
         P1IFG &= ~BIT1;
     }
 }
+
+
+// ---- 三个独立按键 P4.0 / P4.1 / P4.2（轮询方式，和上面的中断互不干扰）----
+void key3_init(void)
+{
+  P4DIR &= ~(BIT0 + BIT1 + BIT2);              // P4.0~P4.2 设为输入
+  P4REN |=  (BIT0 + BIT1 + BIT2);              // 使能内部上下拉电阻
+  P4OUT |=  (BIT0 + BIT1 + BIT2);              // 选上拉：松开=1，按下=0
+}
+
+unsigned char key3_scan(void)
+{
+  if ((P4IN & BIT0) == 0)                      // S1
+  {
+    delay_ms(20);
+    if ((P4IN & BIT0) == 0)
+    {
+      while ((P4IN & BIT0) == 0);              // 等松手
+      return S1;
+    }
+  }
+
+  if ((P4IN & BIT1) == 0)                      // S2
+  {
+    delay_ms(20);
+    if ((P4IN & BIT1) == 0)
+    {
+      while ((P4IN & BIT1) == 0);
+      return S2;
+    }
+  }
+
+  if ((P4IN & BIT2) == 0)                      // S3
+  {
+    delay_ms(20);
+    if ((P4IN & BIT2) == 0)
+    {
+      while ((P4IN & BIT2) == 0);
+      return S3;
+    }
+  }
+
+  return KEY_NONE;                             // 没有按键按下
+}

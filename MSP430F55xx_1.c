@@ -30,7 +30,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *******************************************************************************
- * 
+ *
  *                       MSP430 CODE EXAMPLE DISCLAIMER
  *
  * MSP430 code examples are self-contained low-level programs that typically
@@ -43,9 +43,9 @@
  *
  * --/COPYRIGHT--*/
 //******************************************************************************
-//   MSP430F552x Demo - Software Toggle P1.0
+//   MSP430F552x Demo - LED1 / LED2 轮流亮灭
 //
-//   Description: Toggle P1.0 by xor'ing P1.0 inside of a software loop.
+//   Description: LED1(P1.0) 与 LED2(P4.7) 始终保持相反状态，每隔 1s 同时翻转。
 //   ACLK = 32.768kHz, MCLK = SMCLK = default DCO~1MHz
 //
 //                MSP430F552x
@@ -53,71 +53,48 @@
 //         /|\|                 |
 //          | |                 |
 //          --|RST              |
-//            |                 |
-//            |             P1.0|-->LED
+//            |             P1.0|-->LED1
+//            |             P4.7|-->LED2
 //
-//   Bhargavi Nisarga
-//   Texas Instruments Inc.
-//   April 2009
-//   Built with CCSv4 and IAR Embedded Workbench Version: 4.21
+//   Built with CCS Theia
 //******************************************************************************
 #include <msp430.h>
-#include "delay.h"
-#include "key.h"
+
+// ---- 延时函数（原来放在 delay.h，现在搬到这里，让本文件自成一体）----
+#define CPU_F 1000000UL                   // MCLK 主频 1MHz
+#define delay_ms(x) __delay_cycles(CPU_F / 1000UL * (x))
+#define delay_us(x) __delay_cycles(CPU_F / 1000000UL * (x))
+
+// LED 亮灭控制函数
+//   on = 1 → LED1(P1.0) 亮、LED2(P4.7) 灭
+//   on = 0 → LED1 灭、LED2 亮
+void light(int on)
+{
+  if (on)
+  {
+    P1OUT &= ~BIT0;                   // LED1 亮（低电平点亮）
+    P4OUT |=  BIT7;                   // LED2 灭
+  }
+  else
+  {
+    P1OUT |=  BIT0;                   // LED1 灭
+    P4OUT &= ~BIT7;                   // LED2 亮
+  }
+}
 
 int main(void)
 {
-  int i;
-  int count1;
-  int count2;
+  WDTCTL = WDTPW+WDTHOLD;             // 关闭看门狗
 
-  key_init();
+  P1DIR |= BIT0;                      // P1.0 设为输出（LED1）
+  P4DIR |= BIT7;                      // P4.7 设为输出（LED2）
 
-  WDTCTL = WDTPW+WDTHOLD;                   // Stop WDT
-
-  P3DIR |= 0xFF;                            // P3.0 ~ P3.7 全部设为输出
-  P3OUT |= 0xFF;                            // 先全部熄灭（低电平才点亮，所以拉高）
-  P2DIR &= ~BIT1;
-  P2REN |= BIT1;
-  P2OUT |= BIT1;
-
-  while(1)                                  // continuous loop
+  while (1)
   {
+    light(1);                         // LED1 亮、LED2 灭
+    delay_ms(1000);                   // 保持 1 秒
 
-      if(blink1 == 1)
-      {
-        for (count1 = 0; count1 < 10; count1++)
-        {
-          for (i = 4; i < 8; i++)                 // 依次亮起
-          {
-           P3OUT &= ~(1 << i);                   // 第 i 位拉低 → 点亮
-           delay_ms(500);
-          }
-          for (i = 4; i <8; i++)
-          {
-            P3OUT |= (1 << i);
-            delay_ms(500);
-          }
-        }
-        blink1 = 0;
-      }
-      if(blink2 == 1)
-      {
-        for (count2 = 0; count2 < 5; count2++)
-        {
-          for (i = 7; i > 3; i--)                 // 依次亮起
-          {
-           P3OUT &= ~(1 << i);                   // 第 i 位拉低 → 点亮
-           delay_ms(500);
-          }
-          for (i = 7; i > 3; i--)
-          {
-            P3OUT |= (1 << i);
-            delay_ms(500);
-          }
-        }
-        blink2 = 0;
-      }
-    }
- }
-
+    light(0);                         // LED1 灭、LED2 亮
+    delay_ms(1000);                   // 保持 1 秒
+  }
+}
